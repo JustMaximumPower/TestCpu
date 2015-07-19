@@ -16,15 +16,6 @@ pub mod cpu {
 		BusError
 	}
 	
-	fn btoi32(buffer: &[u8]) -> i32 {
-		(((buffer[0] as u32) << 24) + ((buffer[1] as u32) << 16) + ((buffer[2] as u32) << 8) + buffer[3] as u32) as i32
-	}
-	
-	fn btoi16(buffer: &[u8]) -> i16 {
-		(((buffer[0] as u32) << 8) + buffer[1] as u32) as i16
-	}
-	
-	
 	struct RamPage {
 		data: [u8; 65536],
 		base: u32,
@@ -105,12 +96,12 @@ pub mod cpu {
 		}
 		
 		fn decode(&self) -> Result<Instruction, DecodingError> {
-			let fistByte =  match self.fetchu8(self.pc) {
+			let fist_byte =  match self.fetchu8(self.pc) {
 				Err(way) => return Err(DecodingError::ShortRead),
 				Ok(data) => data
 			};
 			
-			match fistByte {
+			match fist_byte {
 				0 => Ok(Instruction::Nop),
 				1 => {
 					match self.fetchu32(self.pc + 1) {
@@ -134,5 +125,4 @@ pub mod cpu {
 			}
 		}
 	}
-
 }

@@ -10,7 +10,6 @@ fn main() {
 	
 	let input = match env::args().nth(1) {
 		None => panic!("no Input"),
-		
 		Some(file) => file
 	};
 	
