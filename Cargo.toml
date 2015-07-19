@@ -1,9 +1,9 @@
 [package]
 
-name = "hello_world"
+name = "TestCpu"
 version = "0.0.1"
-authors = [ "Your name <you@example.com>" ]
+authors = [ "Moritz Kühner <max.kue@gmx.de" ]
 
 [[bin]]
 
-name = "hello_world"
+name = "TestCpu"
