@@ -74,14 +74,15 @@ pub mod cpu {
 		
 		
 		pub fn step(&mut self) {
-			let inst = match self.decode() {
-				Err(why) => panic!("decoding faild"),
+			let (read, inst) = match self.decode() {
+				Err(_) => panic!("decoding faild"),
 				Ok(inst) => inst
 			};
 			
+			self.pc += read as u32;
+			
 			match inst {
 				Instruction::Nop => {
-					self.pc += 1
 				}
 				
 				Instruction::ShortJump(index) => {
@@ -167,7 +168,7 @@ pub mod cpu {
 		}
 		
 		
-		fn decode(&self) -> Result<Instruction, DecodingError> {
+		fn decode(&self) -> Result<(u8, Instruction), DecodingError> {
 			
 			let fist_byte =  match self.fetchu8(self.pc) {
 				Err(_) => return Err(DecodingError::ShortRead),
@@ -175,24 +176,38 @@ pub mod cpu {
 			};
 			
 			match fist_byte {
-				0 => Ok(Instruction::Nop),
+				0 => Ok((1, Instruction::Nop)),
 				1 => {
 					match self.fetchu32(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok(Instruction::ShortJump(result as i32))
+						Ok(result) => Ok((5, Instruction::ShortJump(result as i32)))
 					}
 				},
 				2 => {
 					match self.fetchu16(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok(Instruction::ShortJump(result as i32))
+						Ok(result) => Ok((3, Instruction::ShortJump(result as i32)))
 					}
 				},
 				3 => {
 					match self.fetchu32(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok(Instruction::LongJump(result))
+						Ok(result) => Ok((5, Instruction::LongJump(result)))
 					}
+				},
+				4 => {
+					let value = match self.fetchu8(self.pc + 1) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let address = match self.fetchu32(self.pc + 2) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let reg = value & 0x1f;
+					let wordsize = 2 << ((value & 0xe0) >> 5);
+					
+					Ok((6, Instruction::Store(wordsize, reg, address)))
 				},
 				
 				_ => Err(DecodingError::NotAnInstruction),
