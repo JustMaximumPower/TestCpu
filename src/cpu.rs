@@ -223,6 +223,25 @@ pub mod cpu {
 					Ok((6, Instruction::Load(wordsize, reg, address)))
 				},
 				
+				0xC => {
+					let length = match self.fetchu8(self.pc + 1) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let src_address = match self.fetchu32(self.pc + 2) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					
+					let dest_address = match self.fetchu32(self.pc + 6) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					
+					Ok((10, Instruction::Move(length, src_address, dest_address)))
+				},
+				
+				
 				_ => Err(DecodingError::NotAnInstruction),
 			}
 		}
