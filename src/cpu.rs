@@ -82,8 +82,7 @@ pub mod cpu {
 			self.pc += read as u32;
 			
 			match inst {
-				Instruction::Nop => {
-				}
+				Instruction::Nop => {}
 				
 				Instruction::ShortJump(index) => {
 					self.pc = (self.pc as i32 + index) as u32
@@ -176,26 +175,26 @@ pub mod cpu {
 			};
 			
 			match fist_byte {
-				0 => Ok((1, Instruction::Nop)),
-				1 => {
+				0x0 => Ok((1, Instruction::Nop)),
+				0x1 => {
 					match self.fetchu32(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
 						Ok(result) => Ok((5, Instruction::ShortJump(result as i32)))
 					}
 				},
-				2 => {
+				0x2 => {
 					match self.fetchu16(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
 						Ok(result) => Ok((3, Instruction::ShortJump(result as i32)))
 					}
 				},
-				3 => {
+				0x3 => {
 					match self.fetchu32(self.pc + 1) {
 						Err(_) => Err(DecodingError::ShortRead),
 						Ok(result) => Ok((5, Instruction::LongJump(result)))
 					}
 				},
-				4 => {
+				0xA => {
 					let value = match self.fetchu8(self.pc + 1) {
 						Err(_) => return Err(DecodingError::ShortRead),
 						Ok(result) => result
