@@ -204,9 +204,23 @@ pub mod cpu {
 						Ok(result) => result
 					};
 					let reg = value & 0x1f;
-					let wordsize = 2 << ((value & 0xe0) >> 5);
+					let wordsize = 2 << ((value & 0xC0) >> 6);
 					
 					Ok((6, Instruction::Store(wordsize, reg, address)))
+				},
+				0xB => {
+					let value = match self.fetchu8(self.pc + 1) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let address = match self.fetchu32(self.pc + 2) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let reg = value & 0x1f;
+					let wordsize = 2 << ((value & 0xC0) >> 6);
+					
+					Ok((6, Instruction::Load(wordsize, reg, address)))
 				},
 				
 				_ => Err(DecodingError::NotAnInstruction),
