@@ -19,6 +19,8 @@ pub mod cpu {
 		Load(u8, u8, u32),
 		//(wordsize, SrcAddress, DestAddress)
 		Move(u8, u32, u32),
+		
+		Copy(u8, u8),
 	}
 	
 	
@@ -131,6 +133,21 @@ pub mod cpu {
 							panic!("store failed {}", dest_address + n as u32);
 						}
 					}
+				}
+				
+				Instruction::Copy(source_reg, dest_reg) => {
+					println!("Copy from 0x{:X} to 0x{:X}", source_reg, dest_reg);
+					let value = match source_reg {
+						r @ 0 ... 31 => self.gp_regs[r as usize],
+						0x80 => self.pc,
+						r @ _ =>  panic!("Illegal source register {}", r)
+					};
+					
+					match dest_reg {
+						r @ 0 ... 31 => self.gp_regs[r as usize] = value,
+						0x80 => self.pc = value,
+						r @ _ =>  panic!("Illegal target register {}", r)
+					};
 				}
 			}
 		}
@@ -245,6 +262,17 @@ pub mod cpu {
 					
 					Ok((10, Instruction::Move(length, src_address, dest_address)))
 				},
+				0xD => {
+					let source_reg = match self.fetchu8(self.pc + 1) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					let dest_reg = match self.fetchu8(self.pc + 1) {
+						Err(_) => return Err(DecodingError::ShortRead),
+						Ok(result) => result
+					};
+					Ok((3, Instruction::Copy(source_reg, dest_reg)))
+				}
 				
 				
 				_ => Err(DecodingError::NotAnInstruction),
