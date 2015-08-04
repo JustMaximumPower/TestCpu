@@ -85,14 +85,18 @@ pub mod cpu {
 				Instruction::Nop => {}
 				
 				Instruction::ShortJump(index) => {
+					println!("Relative Jump {}", index);
 					self.pc = (self.pc as i32 + index) as u32
 				}
 				
 				Instruction::LongJump(address) => {
+					println!("Absolute Jump 0x{:X}", address);
 					self.pc = address
 				}
 				
 				Instruction::Store(wordsize, register, address) => {
+					println!("Store {} bytes to r{} at 0x{:X}", wordsize, register, address);
+					
 					let reg = self.gp_regs[register as usize];
 					for n in 0 .. wordsize {
 						let value = (reg >> (8 * (wordsize - n))) as u8;
@@ -103,21 +107,21 @@ pub mod cpu {
 				}
 				
 				Instruction::Load(wordsize, register, address) => {
+					println!("Load {} bytes to r{} at 0x{:X}", wordsize, register, address);
 					
 					let mut reg = 0u32;					
 					for n in 0 .. wordsize {
-						
 						let value = match self.fetchu8(address + n as u32) {
 							Err(_) => panic!("fatch failed at {}", address),
 							Ok(value) => value
 						};
-						
 						reg = reg << (8 * (wordsize - n)) + value;
 					}
 					self.gp_regs[register as usize] = reg;
 				}
 				
 				Instruction::Move(wordsize, src_address, dest_address) => {
+					println!("Move {} bytes from 0x{:X} to 0x{:X}", wordsize, src_address, dest_address);
 					for n in 0 .. wordsize {
 						let value = match self.fetchu8(src_address + n as u32) {
 							Err(_) => panic!("fatch failed at {}", src_address + n as u32),
@@ -228,6 +232,7 @@ pub mod cpu {
 						Err(_) => return Err(DecodingError::ShortRead),
 						Ok(result) => result
 					};
+					
 					let src_address = match self.fetchu32(self.pc + 2) {
 						Err(_) => return Err(DecodingError::ShortRead),
 						Ok(result) => result
