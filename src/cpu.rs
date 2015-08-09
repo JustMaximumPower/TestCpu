@@ -42,6 +42,7 @@ pub mod cpu {
 		NotAnInstruction,
 		IllegalRegister(u8),
 		AccessError,
+//		DivedByZero,
 	}
 	
 	struct RamPage {
@@ -183,8 +184,18 @@ pub mod cpu {
 						ArithmeticMode::Add => { value_a + value_b }
 						ArithmeticMode::Sub => { value_a - value_b }
 						ArithmeticMode::Mul => { value_a * value_b }
-						ArithmeticMode::Div => { value_a / value_b }
-						ArithmeticMode::Mod => { value_a % value_b }
+						ArithmeticMode::Div => {
+							if value_b == 0 {
+								panic!("DivedByZero")
+							}
+							value_a / value_b 
+						}
+						ArithmeticMode::Mod => {
+							if value_b == 0 {
+								panic!("DivedByZero")
+							}
+							value_a % value_b 
+						}
 						ArithmeticMode::Or  => { value_a | value_b }
 						ArithmeticMode::And => { value_a & value_b }
 						ArithmeticMode::Xor => { value_a ^ value_b }
@@ -315,7 +326,8 @@ pub mod cpu {
 						0x14 =>	ArithmeticMode::Mod,
 						0x15 =>	ArithmeticMode::Or,
 						0x16 =>	ArithmeticMode::And,
-						_ =>	ArithmeticMode::Xor //HACK:
+						0x17 => ArithmeticMode::Xor, 
+						_ => unreachable!() //HACK: 
 					};
 					let target = (value & 0b0111110000000000 >> 10) as u8;
 					let src_a  = (value & 0b0000001111100000 >> 5) as u8;
@@ -324,7 +336,7 @@ pub mod cpu {
 					Ok((3, Instruction::Arithmetic(mode, target, src_a, src_b)))
 				},
 				
-				_ => Err(Error::NotAnInstruction),
+				_ => Err(Error::NotAnInstruction)
 			}
 		}
 	}
