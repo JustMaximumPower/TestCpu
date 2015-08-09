@@ -170,7 +170,7 @@ pub mod cpu {
 				}
 				 
 				Instruction::Copy(source_reg, dest_reg) => {
-					println!("Copy from 0x{:X} to 0x{:X}", source_reg, dest_reg);
+					println!("Copy from r{} to r{}", source_reg, dest_reg);
 					
 					let value = try!(self.fetch_reg(source_reg));
 					try!(self.save_reg(dest_reg, value));
