@@ -38,11 +38,10 @@ pub mod cpu {
 	}
 	
 	enum Error {
-		ReadError,
 		NotAnInstruction,
 		IllegalRegister(u8),
-		AccessError,
-//		DivedByZero,
+		AccessError(u32),
+		DivedByZero,
 	}
 	
 	struct RamPage {
@@ -90,20 +89,21 @@ pub mod cpu {
 			
 			if result.is_err() {
 				match result.err().unwrap() {
-					Error::ReadError => {
-						
-					}
-					
+
 					Error::NotAnInstruction => {
-						
+						panic!("Not an instruction at 0x{:X}", self.pc);
 					}
 					
 					Error::IllegalRegister(reg) => {
-						
+						panic!("Illegal register r{:}", reg);
 					}
 					
-					Error::AccessError => {
-						
+					Error::AccessError(address) => {
+						panic!("Access error at 0x{:X}", address);
+					}
+					
+					Error::DivedByZero => {
+						panic!("divied by zero 0x{:X}", self.pc);
 					}
 				}
 			}
@@ -143,15 +143,15 @@ pub mod cpu {
 				}
 				
 				Instruction::Load(wordsize, register, address) => {
-					println!("Load {} bytes to r{} at 0x{:X}", wordsize, register, address);
+					println!("Load {} bytes to r{} from 0x{:X}", wordsize, register, address);
 					
 					let mut reg = 0u32;					
 					for n in 0 .. wordsize {
 						let value = match self.fetchu8(address + n as u32) {
 							Err(_) => panic!("fatch failed at {}", address),
 							Ok(value) => value
-						};
-						reg = reg << (8 * (wordsize - n)) + value;
+						} as u32;
+						reg = (value << (8 * (wordsize - n - 1))) | reg;
 					}
 					self.gp_regs[register as usize] = reg;
 				}
@@ -186,13 +186,13 @@ pub mod cpu {
 						ArithmeticMode::Mul => { value_a * value_b }
 						ArithmeticMode::Div => {
 							if value_b == 0 {
-								panic!("DivedByZero")
+								return Err(Error::DivedByZero);
 							}
 							value_a / value_b 
 						}
 						ArithmeticMode::Mod => {
 							if value_b == 0 {
-								panic!("DivedByZero")
+								return Err(Error::DivedByZero);
 							}
 							value_a % value_b 
 						}
@@ -232,7 +232,7 @@ pub mod cpu {
 			let base = address >> 16;
 			let offset = address & 0xffff;
 			if self.ram.len() as u32 <= base {
-				return Err(Error::AccessError);
+				return Err(Error::AccessError(address));
 			}
 			self.ram[base as usize].data[offset as usize] = value;
 			Ok(())
@@ -243,7 +243,7 @@ pub mod cpu {
 			let base = address >> 16;
 			let offset = address & 0xffff;
 			if self.ram.len() as u32 <= base {
-				return Err(Error::AccessError);
+				return Err(Error::AccessError(address));
 			}
 			
 			Ok(self.ram[base as usize].data[offset as usize])
@@ -329,8 +329,8 @@ pub mod cpu {
 						0x17 => ArithmeticMode::Xor, 
 						_ => unreachable!() //HACK: 
 					};
-					let target = (value & 0b0111110000000000 >> 10) as u8;
-					let src_a  = (value & 0b0000001111100000 >> 5) as u8;
+					let target = ((value & 0b0111110000000000) >> 10) as u8;
+					let src_a  = ((value & 0b0000001111100000) >> 5) as u8;
 					let src_b  = (value & 0b0000000000011111) as u8;
 					
 					Ok((3, Instruction::Arithmetic(mode, target, src_a, src_b)))
