@@ -9,6 +9,18 @@ pub mod cpu {
 //	}
 
 
+	enum ArithmeticMode {
+		Add,
+		Sub,
+		Mul,
+		Div,
+		Mod,
+		Or,
+		And,
+		Xor
+	}
+
+
 	enum Instruction {
 		Nop,
 		ShortJump(i32),
@@ -21,19 +33,16 @@ pub mod cpu {
 		Move(u8, u32, u32),
 		
 		Copy(u8, u8),
+		
+		Arithmetic(ArithmeticMode, u8, u8, u8)
 	}
 	
-	
-	enum DecodingError {
-		ShortRead,
-		NotAnInstruction
+	enum Error {
+		ReadError,
+		NotAnInstruction,
+		IllegalRegister(u8),
+		AccessError,
 	}
-	
-	
-	enum RamError {
-		BusError
-	}
-	
 	
 	struct RamPage {
 		data: [u8; 65536],
@@ -74,8 +83,32 @@ pub mod cpu {
 			return obj;
 		}
 		
-		
 		pub fn step(&mut self) {
+			
+			let result = self.step_impl();
+			
+			if result.is_err() {
+				match result.err().unwrap() {
+					Error::ReadError => {
+						
+					}
+					
+					Error::NotAnInstruction => {
+						
+					}
+					
+					Error::IllegalRegister(reg) => {
+						
+					}
+					
+					Error::AccessError => {
+						
+					}
+				}
+			}
+		}
+		
+		fn step_impl(&mut self) -> Result<(), Error> {
 			let (read, inst) = match self.decode() {
 				Err(_) => panic!("decoding faild"),
 				Ok(inst) => inst
@@ -134,110 +167,122 @@ pub mod cpu {
 						}
 					}
 				}
-				
+				 
 				Instruction::Copy(source_reg, dest_reg) => {
 					println!("Copy from 0x{:X} to 0x{:X}", source_reg, dest_reg);
-					let value = match source_reg {
-						r @ 0 ... 31 => self.gp_regs[r as usize],
-						0x80 => self.pc,
-						r @ _ =>  panic!("Illegal source register {}", r)
+					
+					let value = try!(self.fetch_reg(source_reg));
+					try!(self.save_reg(dest_reg, value));
+				}
+				
+				Instruction::Arithmetic(mode, target, src_a, src_b) => {
+					let value_a = try!(self.fetch_reg(src_a));
+					let value_b = try!(self.fetch_reg(src_b));
+					
+					let result = match mode {
+						ArithmeticMode::Add => { value_a + value_b }
+						ArithmeticMode::Sub => { value_a - value_b }
+						ArithmeticMode::Mul => { value_a * value_b }
+						ArithmeticMode::Div => { value_a / value_b }
+						ArithmeticMode::Mod => { value_a % value_b }
+						ArithmeticMode::Or  => { value_a | value_b }
+						ArithmeticMode::And => { value_a & value_b }
+						ArithmeticMode::Xor => { value_a ^ value_b }
 					};
 					
-					match dest_reg {
-						r @ 0 ... 31 => self.gp_regs[r as usize] = value,
-						0x80 => self.pc = value,
-						r @ _ =>  panic!("Illegal target register {}", r)
-					};
+					try!(self.save_reg(target, result));
 				}
+			}
+			
+			Ok(())
+		}
+		
+		
+		fn save_reg(&mut self, reg: u8, value: u32) -> Result<(), Error> {
+			match reg {
+				0 ... 31 => self.gp_regs[reg as usize] = value,
+				0x80 => self.pc = value,
+				_ => { return Err(Error::IllegalRegister(reg));}
+			}
+			Ok(())
+		}
+		
+		
+		fn fetch_reg(&self, reg: u8) -> Result<u32, Error> {
+			match reg {
+				0 ... 31 => Ok(self.gp_regs[reg as usize]),
+				0x80 => Ok(self.pc),
+				_ => { return Err(Error::IllegalRegister(reg));}
 			}
 		}
 		
 		
-		fn storeu8(&mut self, value: u8, address: u32) -> Result<(), RamError> {
+		fn storeu8(&mut self, value: u8, address: u32) -> Result<(), Error> {
 			let base = address >> 16;
 			let offset = address & 0xffff;
 			if self.ram.len() as u32 <= base {
-				return Err(RamError::BusError);
+				return Err(Error::AccessError);
 			}
 			self.ram[base as usize].data[offset as usize] = value;
 			Ok(())
 		}
 		
 		
-		fn fetchu8(&self, address: u32) -> Result<u8, RamError> {
+		fn fetchu8(&self, address: u32) -> Result<u8, Error> {
 			let base = address >> 16;
 			let offset = address & 0xffff;
 			if self.ram.len() as u32 <= base {
-				return Err(RamError::BusError);
+				return Err(Error::AccessError);
 			}
+			
 			Ok(self.ram[base as usize].data[offset as usize])
 		}
 		
 		
-		fn fetchu16(&self, address: u32) -> Result<u16, RamError> {
+		fn fetchu16(&self, address: u32) -> Result<u16, Error> {
 			let hiby = try!(self.fetchu8(address)) as u16;
 			let lowby = try!(self.fetchu8(address + 1)) as u16;
+			
 			Ok((hiby << 8) + lowby)
 		}
 		
 		
-		fn fetchu32(&self, address: u32) -> Result<u32, RamError> {
+		fn fetchu32(&self, address: u32) -> Result<u32, Error> {
 			let hiby = try!(self.fetchu16(address)) as u32;
 			let lowby = try!(self.fetchu16(address + 2)) as u32;
+			
 			Ok((hiby << 16) + lowby)
 		}
 		
 		
-		fn decode(&self) -> Result<(u8, Instruction), DecodingError> {
-			
-			let fist_byte =  match self.fetchu8(self.pc) {
-				Err(_) => return Err(DecodingError::ShortRead),
-				Ok(data) => data
-			};
+		fn decode(&self) -> Result<(u8, Instruction), Error> {
+			let fist_byte = try!(self.fetchu8(self.pc));
 			
 			match fist_byte {
 				0x0 => Ok((1, Instruction::Nop)),
 				0x1 => {
-					match self.fetchu32(self.pc + 1) {
-						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok((5, Instruction::ShortJump(result as i32)))
-					}
+					let value = try!(self.fetchu32(self.pc + 1));
+					Ok((5, Instruction::ShortJump(value as i32)))
 				},
 				0x2 => {
-					match self.fetchu16(self.pc + 1) {
-						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok((3, Instruction::ShortJump(result as i32)))
-					}
+					let value = try!(self.fetchu16(self.pc + 1));
+					Ok((3, Instruction::ShortJump(value as i32)))
 				},
 				0x3 => {
-					match self.fetchu32(self.pc + 1) {
-						Err(_) => Err(DecodingError::ShortRead),
-						Ok(result) => Ok((5, Instruction::LongJump(result)))
-					}
+					let value = try!(self.fetchu32(self.pc + 1));
+					Ok((5, Instruction::LongJump(value)))
 				},
 				0xA => {
-					let value = match self.fetchu8(self.pc + 1) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
-					let address = match self.fetchu32(self.pc + 2) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
+					let value = try!(self.fetchu8(self.pc + 1));
+					let address =  try!(self.fetchu32(self.pc + 2));
 					let reg = value & 0x1f;
 					let wordsize = 2 << ((value & 0xC0) >> 6);
 					
 					Ok((6, Instruction::Store(wordsize, reg, address)))
 				},
 				0xB => {
-					let value = match self.fetchu8(self.pc + 1) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
-					let address = match self.fetchu32(self.pc + 2) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
+					let value =  try!(self.fetchu8(self.pc + 1));
+					let address =  try!(self.fetchu32(self.pc + 2));
 					let reg = value & 0x1f;
 					let wordsize = 2 << ((value & 0xC0) >> 6);
 					
@@ -245,37 +290,41 @@ pub mod cpu {
 				},
 				
 				0xC => {
-					let length = match self.fetchu8(self.pc + 1) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
-					
-					let src_address = match self.fetchu32(self.pc + 2) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
-					
-					let dest_address = match self.fetchu32(self.pc + 6) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
+					let length =  try!(self.fetchu8(self.pc + 1));
+					let src_address =  try!(self.fetchu32(self.pc + 2));
+					let dest_address =  try!(self.fetchu32(self.pc + 6));
 					
 					Ok((10, Instruction::Move(length, src_address, dest_address)))
 				},
+				
 				0xD => {
-					let source_reg = match self.fetchu8(self.pc + 1) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
-					let dest_reg = match self.fetchu8(self.pc + 1) {
-						Err(_) => return Err(DecodingError::ShortRead),
-						Ok(result) => result
-					};
+					let source_reg =  try!(self.fetchu8(self.pc + 1));
+					let dest_reg =  try!(self.fetchu8(self.pc + 1));
+					
 					Ok((3, Instruction::Copy(source_reg, dest_reg)))
-				}
+				},
 				
+				code @ 0x10 ... 0x17 => {					
+					let value = try!(self.fetchu16(self.pc + 1));
+					
+					let mode = match code {
+						0x10 => ArithmeticMode::Add,
+						0x11 => ArithmeticMode::Sub,
+						0x12 =>	ArithmeticMode::Mul,
+						0x13 =>	ArithmeticMode::Div,
+						0x14 =>	ArithmeticMode::Mod,
+						0x15 =>	ArithmeticMode::Or,
+						0x16 =>	ArithmeticMode::And,
+						_ =>	ArithmeticMode::Xor //HACK:
+					};
+					let target = (value & 0b0111110000000000 >> 10) as u8;
+					let src_a  = (value & 0b0000001111100000 >> 5) as u8;
+					let src_b  = (value & 0b0000000000011111) as u8;
+					
+					Ok((3, Instruction::Arithmetic(mode, target, src_a, src_b)))
+				},
 				
-				_ => Err(DecodingError::NotAnInstruction),
+				_ => Err(Error::NotAnInstruction),
 			}
 		}
 	}
