@@ -1,0 +1,7 @@
+[package]
+name = "test_asm"
+version = "0.1.0"
+authors = ["JustMaximumPower <max.kue@gmx.de>"]
+
+[dependencies]
+peg = "0.3.0"
