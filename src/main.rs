@@ -33,37 +33,7 @@ impl Prog {
 	}
 }
 
-//peg_file! gramma("gramma.rustpeg");
-peg! gramma(r#"
-
-#[pub]
-programm -> super::Prog
-	= s:Statement* { super::Prog::new(s) }
- 
-Statement -> Option<super::Statemant>
-	= l:Lable { Some(super::Statemant::Lable(l)) }
-	/ i:Instruction { Some(i) }
-	/ Comment { Some(super::Statemant::Comment) }
-	/ WhiteSpace { None }
-	
-Comment -> ()
-	= "/" "/" .*
-	
-Lable -> String
-	= i:Ident ":" { i }
-	
-Instruction -> super::Statemant
-	= i:Ident arg:Ident ** Seperator { super::Statemant::Instruction(i, arg) }
-
-Ident -> String
-	= [a-zA-Z_][a-zA-Z_0-9]* { match_str.to_string() }
-
-WhiteSpace -> ()
-	= "\s"+
-	
-Seperator -> ()
-	= "\s"* "," "\s"*
-"#);
+peg_file! gramma("gramma.rustpeg");
 
  
 fn main() {
@@ -84,11 +54,14 @@ fn main() {
 	
 	file.read_to_string(&mut data).unwrap();
 	
-	//match programm(&data) {
-	match programm("R:") {
-		Ok(p) => {},
-		Err(why) => panic!(why)
-	}
+	print!("{}", data);
+	
+	let ast = match programm(&data) {
+		Ok(ast) => { ast },
+		Err(why) => panic!("{}", why)
+	};
+	
+	
 }
 
 

@@ -1,0 +1,43 @@
+#[pub]
+programm -> super::Prog
+	= s:Statement* { super::Prog::new(s) }
+
+
+Statement -> Option<super::Statemant>
+	= l:Lable { Some(super::Statemant::Lable(l)) }
+	/ i:Instruction { Some(i) }
+	/ Comment { None }
+	/ WhiteSpace+ { None }
+
+
+Comment -> ()
+	= "//" .*
+
+
+Lable -> String
+	= i:Ident ":" { i }
+
+
+Instruction -> super::Statemant
+	= i:Ident WhiteSpace+ arg:Argument ** Seperator { super::Statemant::Instruction(i, arg) }
+
+
+Argument -> String
+	= v:Ident { v }
+	/ v:Number { v }
+
+
+Number -> String
+	= [0-9]+ { match_str.to_string() }
+
+
+Ident -> String
+	= [a-zA-Z_][a-zA-Z_0-9]* { match_str.to_string() }
+
+
+WhiteSpace -> ()
+	= [ \t\n]
+	
+	
+Seperator -> ()
+	= WhiteSpace* "," WhiteSpace*
