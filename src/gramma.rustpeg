@@ -6,12 +6,9 @@ programm -> super::Prog
 Statement -> Option<super::Statemant>
 	= l:Lable { Some(super::Statemant::Lable(l)) }
 	/ i:Instruction { Some(i) }
+	/ d:Data { Some(super::Statemant::Data(d)) }
 	/ Comment { None }
 	/ WhiteSpace+ { None }
-
-
-Comment -> ()
-	= "//" .*
 
 
 Lable -> String
@@ -21,14 +18,22 @@ Lable -> String
 Instruction -> super::Statemant
 	= i:Ident WhiteSpace+ arg:Argument ** Seperator { super::Statemant::Instruction(i, arg) }
 
+Data -> String
+	= "'" n:Number "'" { n }
+
+
+Comment -> ()
+	= "//" .*
+
 
 Argument -> String
-	= v:Ident { v }
-	/ v:Number { v }
+	= i:Ident { i }
+	/ n:Number { n }
 
 
 Number -> String
 	= [0-9]+ { match_str.to_string() }
+	/ "0x" [0-9a-fA-F]+ { match_str.to_string() }
 
 
 Ident -> String

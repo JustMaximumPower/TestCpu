@@ -11,7 +11,8 @@ use gramma::programm;
 pub enum Statemant {
 	Comment,
 	Lable(String), 
-	Instruction(String, Vec<String>)
+	Instruction(String, Vec<String>),
+	Data(String)
 }
 
 pub struct Prog {
