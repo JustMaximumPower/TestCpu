@@ -11,6 +11,7 @@ use gramma::programm;
 pub enum Statemant {
 	Comment,
 	Lable(String), 
+	Instruction(String, Vec<String>)
 }
 
 pub struct Prog {
@@ -18,8 +19,17 @@ pub struct Prog {
 }
 
 impl Prog {
-	pub fn new(statments: Vec<Statemant>) -> Prog {
-		Prog{statments: statments}
+	pub fn new(statments: Vec<Option<Statemant>>) -> Prog {
+		let mut tmp: Vec<Statemant> = Vec::new();
+		
+		for i in statments {
+			match i {
+				Some(v) => tmp.push(v),
+				None => {}
+			}
+		}
+		
+		Prog{ statments: tmp }
 	}
 }
 
@@ -28,24 +38,31 @@ peg! gramma(r#"
 
 #[pub]
 programm -> super::Prog
-	= s:state ** ("\s"*) { super::Prog::new(s) }
-
-state -> super::Statemant
-	= comment { super::Statemant::Comment }
-	/ l:lable { super::Statemant::Lable(l) }
+	= s:Statement* { super::Prog::new(s) }
+ 
+Statement -> Option<super::Statemant>
+	= l:Lable { Some(super::Statemant::Lable(l)) }
+	/ i:Instruction { Some(i) }
+	/ Comment { Some(super::Statemant::Comment) }
+	/ WhiteSpace { None }
 	
-comment -> ()
-	= "/" "/" [^\n]* "\n"
+Comment -> ()
+	= "/" "/" .*
 	
-lable -> String
+Lable -> String
 	= i:Ident ":" { i }
+	
+Instruction -> super::Statemant
+	= i:Ident arg:Ident ** Seperator { super::Statemant::Instruction(i, arg) }
 
 Ident -> String
 	= [a-zA-Z_][a-zA-Z_0-9]* { match_str.to_string() }
 
-Sep -> ()
+WhiteSpace -> ()
 	= "\s"+
 	
+Seperator -> ()
+	= "\s"* "," "\s"*
 "#);
 
  
@@ -67,8 +84,9 @@ fn main() {
 	
 	file.read_to_string(&mut data).unwrap();
 	
-	match programm(&data) {
-		Ok(p) => {}
+	//match programm(&data) {
+	match programm("R:") {
+		Ok(p) => {},
 		Err(why) => panic!(why)
 	}
 }
