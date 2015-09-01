@@ -8,19 +8,19 @@ use std::fs::File;
 use std::io::Read;
 use gramma::programm;
 
-pub enum Statemant {
+pub enum Statement {
 	Label(String), 
 	Instruction(String, Vec<String>),
 	Data(String)
 }
 
 pub struct Prog {
-	statments: Vec<Statemant>
+	statments: Vec<Statement>
 }
 
 impl Prog {
-	pub fn new(statments: Vec<Option<Statemant>>) -> Prog {
-		let mut tmp: Vec<Statemant> = Vec::new();
+	pub fn new(statments: Vec<Option<Statement>>) -> Prog {
+		let mut tmp: Vec<Statement> = Vec::new();
 		
 		for i in statments {
 			match i {
@@ -63,9 +63,9 @@ fn main() {
 	
 	for statment in ast.statments {
 		match statment {
-			Statemant::Label(l) => println!("Label {}", l),
-			Statemant::Data(d) => println!("Data {}", d),
-			Statemant::Instruction(ins, args) => println!("Instruction {}  {}", ins, args.join(", ")),
+			Statement::Label(l) => println!("Label {}", l),
+			Statement::Data(d) => println!("Data {}", d),
+			Statement::Instruction(ins, args) => println!("Instruction {}  {}", ins, args.join(", ")),
 			//_ => println!("Unkonwn")
 		}
 	}

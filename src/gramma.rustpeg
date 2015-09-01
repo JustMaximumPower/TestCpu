@@ -3,10 +3,10 @@ programm -> super::Prog
 	= s:Statement* { super::Prog::new(s) }
 
 
-Statement -> Option<super::Statemant>
-	= l:Label { Some(super::Statemant::Label(l)) }
+Statement -> Option<super::Statement>
+	= l:Label { Some(super::Statement::Label(l)) }
 	/ i:Instruction { Some(i) }
-	/ d:Data { Some(super::Statemant::Data(d)) }
+	/ d:Data { Some(super::Statement::Data(d)) }
 	/ Comment { None }
 	/ WhiteSpace+ { None }
 
@@ -15,8 +15,8 @@ Label -> String
 	= i:Ident ":" { i }
 
 
-Instruction -> super::Statemant
-	= i:Ident WhiteSpace+ arg:Argument ** Seperator { super::Statemant::Instruction(i, arg) }
+Instruction -> super::Statement
+	= i:Ident WhiteSpace+ arg:Argument ** Seperator { super::Statement::Instruction(i, arg) }
 
 Data -> String
 	= "'" n:Number "'" { n }
