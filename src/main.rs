@@ -9,8 +9,7 @@ use std::io::Read;
 use gramma::programm;
 
 pub enum Statemant {
-	Comment,
-	Lable(String), 
+	Label(String), 
 	Instruction(String, Vec<String>),
 	Data(String)
 }
@@ -36,7 +35,7 @@ impl Prog {
 
 peg_file! gramma("gramma.rustpeg");
 
- 
+
 fn main() {
 	let input = match env::args().nth(1) {
 		None => panic!("no Input"),
@@ -55,14 +54,21 @@ fn main() {
 	
 	file.read_to_string(&mut data).unwrap();
 	
-	print!("{}", data);
+	println!("{}", data);
 	
 	let ast = match programm(&data) {
 		Ok(ast) => { ast },
 		Err(why) => panic!("{}", why)
 	};
 	
-	
+	for statment in ast.statments {
+		match statment {
+			Statemant::Label(l) => println!("Label {}", l),
+			Statemant::Data(d) => println!("Data {}", d),
+			Statemant::Instruction(ins, args) => println!("Instruction {}  {}", ins, args.join(", ")),
+			//_ => println!("Unkonwn")
+		}
+	}
 }
 
 

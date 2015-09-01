@@ -4,14 +4,14 @@ programm -> super::Prog
 
 
 Statement -> Option<super::Statemant>
-	= l:Lable { Some(super::Statemant::Lable(l)) }
+	= l:Label { Some(super::Statemant::Label(l)) }
 	/ i:Instruction { Some(i) }
 	/ d:Data { Some(super::Statemant::Data(d)) }
 	/ Comment { None }
 	/ WhiteSpace+ { None }
 
 
-Lable -> String
+Label -> String
 	= i:Ident ":" { i }
 
 
@@ -23,7 +23,7 @@ Data -> String
 
 
 Comment -> ()
-	= "//" .*
+	= "//" [^\n]*
 
 
 Argument -> String
@@ -32,8 +32,8 @@ Argument -> String
 
 
 Number -> String
-	= [0-9]+ { match_str.to_string() }
-	/ "0x" [0-9a-fA-F]+ { match_str.to_string() }
+	=  "0x"[0-9a-fA-F]+ { match_str.to_string() }
+	/ [0-9]+ { match_str.to_string() }
 
 
 Ident -> String
