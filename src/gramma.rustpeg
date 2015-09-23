@@ -26,9 +26,9 @@ Comment -> ()
 	= "//" [^\n]*
 
 
-Argument -> String
-	= i:Ident { i }
-	/ n:Number { n }
+Argument -> super::Argument
+	= i:Ident { super::Argument::Ident(i) }
+	/ n:Number { super::Argument::Number(n) }
 
 
 Number -> String

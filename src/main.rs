@@ -6,16 +6,35 @@ use std::env;
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::collections::HashMap;
+
 use gramma::programm;
 
+#[derive(Clone)]
 pub enum Statement {
 	Label(String), 
-	Instruction(String, Vec<String>),
+	Instruction(String, Vec<Argument>),
 	Data(String)
 }
 
+#[derive(Clone)]
+pub enum Argument {
+	Ident(String),
+	Number(String)
+}
+
+enum BackRev {
+	Absolute(String, u32),
+	Relative(String, u32),
+	Relative16(String, u32)
+}
+
+
 pub struct Prog {
-	statments: Vec<Statement>
+	statments: Vec<Statement>,
+	labels: HashMap<String, usize>,
+	program: Vec<u8>,
+	back_rev: Vec<BackRev>
 }
 
 impl Prog {
@@ -29,12 +48,81 @@ impl Prog {
 			}
 		}
 		
-		Prog{ statments: tmp }
+		Prog { 
+			statments: tmp, 
+			labels: HashMap::new(), 
+			program: Vec::new(), 
+			back_rev: Vec::new()
+		}
+	}
+	
+	pub fn first_pass(&mut self) {
+		
+		let tmp = self.statments.clone();
+		for statment in tmp {
+			match statment {
+				Statement::Label(l) => {
+					if self.labels.contains_key(&l) {
+						panic!("Duplicate lable {}", l);
+					}
+					
+					let pos = self.program.len();
+					
+					self.labels.insert(l.clone(), pos);
+					println!("Label {} at {:X} ", l, pos)
+				},
+				
+				Statement::Data(d) => {
+					let value = Prog::parse_number(&d);
+					self.program.push(value as u8);
+					println!("Data {}", d);
+				},
+				
+				Statement::Instruction(ins, args) => {
+					println!("Instruction {} ", ins);
+					match ins.as_ref() {
+						"nop" => {
+							self.program.push(0x0u8);
+							if !args.is_empty() {
+								panic!("nop expects no arguments");	
+							}
+						},
+						
+						"jmp" => {
+							self.program.push(0x3u8);
+							if args.len() != 1 {
+								panic!("jmp expects 1 argument");	
+							}
+							self.push_address(&args[0]);
+						},
+						
+						_ => {
+							panic!("unkown instruction {}", ins);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	fn push_address(&mut self, arg: &Argument) {
+		
+	}
+	
+	fn parse_number(str_number: &String) -> i64 {
+		let value: i64;
+		
+		if str_number.find("0x").is_some() {
+			value = i64::from_str_radix(&str_number[2..], 16).unwrap();
+		} else {
+			value = str_number.parse().unwrap();
+		}
+		
+		return value;
 	}
 }
 
 peg_file! gramma("gramma.rustpeg");
-
 
 fn main() {
 	let input = match env::args().nth(1) {
@@ -56,19 +144,12 @@ fn main() {
 	
 	println!("{}", data);
 	
-	let ast = match programm(&data) {
+	let mut ast = match programm(&data) {
 		Ok(ast) => { ast },
 		Err(why) => panic!("{}", why)
 	};
 	
-	for statment in ast.statments {
-		match statment {
-			Statement::Label(l) => println!("Label {}", l),
-			Statement::Data(d) => println!("Data {}", d),
-			Statement::Instruction(ins, args) => println!("Instruction {}  {}", ins, args.join(", ")),
-			//_ => println!("Unkonwn")
-		}
-	}
+	ast.first_pass();
 }
 
 
