@@ -74,7 +74,7 @@ impl Prog {
 				
 				Statement::Data(d) => {
 					let value = Prog::parse_number(&d);
-					self.program.push(value as u8);
+					self.push_value8(value as u8);
 					println!("Data {}", d);
 				},
 				
@@ -106,6 +106,16 @@ impl Prog {
 	}
 	
 	fn push_address(&mut self, arg: &Argument) {
+		match arg.clone() {
+			Argument::Ident(x) => {
+				if self.labels.contains_key(&x) {
+					let address = self.labels.get(&x).unwrap();
+				}
+			},
+			Argument::Number(x) => {
+				
+			}
+		}
 		
 	}
 	
@@ -120,6 +130,10 @@ impl Prog {
 		
 		return value;
 	}
+	
+	fn push_value8(&mut self, value : u8) {
+		self.program.push(value);
+	}	
 }
 
 peg_file! gramma("gramma.rustpeg");
