@@ -109,21 +109,28 @@ impl Prog {
 		match arg.clone() {
 			Argument::Ident(x) => {
 				if self.labels.contains_key(&x) {
-					let address = self.labels.get(&x).unwrap();
+					let address = self.labels.get(&x).unwrap().clone();
+					self.push_value32(address as u32);
+				}
+				else
+				{
+					let pos = self.program.len() as u32;
+					self.push_value32(0u32);
+					let rev = BackRev::Absolute(x, pos);
+					self.back_rev.push(rev);
 				}
 			},
 			Argument::Number(x) => {
-				
+				self.push_value32(Prog::parse_number(&x) as u32);
 			}
 		}
-		
 	}
 	
-	fn parse_number(str_number: &String) -> i64 {
-		let value: i64;
+	fn parse_number(str_number: &String) -> u64 {
+		let value: u64;
 		
 		if str_number.find("0x").is_some() {
-			value = i64::from_str_radix(&str_number[2..], 16).unwrap();
+			value = u64::from_str_radix(&str_number[2..], 16).unwrap();
 		} else {
 			value = str_number.parse().unwrap();
 		}
@@ -133,7 +140,17 @@ impl Prog {
 	
 	fn push_value8(&mut self, value : u8) {
 		self.program.push(value);
-	}	
+	}
+	
+	fn push_value16(&mut self, value : u16) {
+		self.push_value8((value >> 8) as u8);
+		self.push_value8(value as u8);
+	}
+	
+	fn push_value32(&mut self, value : u32) {
+		self.push_value16((value >> 16) as u16);
+		self.push_value16(value as u16);
+	}
 }
 
 peg_file! gramma("gramma.rustpeg");
