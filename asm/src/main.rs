@@ -57,9 +57,7 @@ impl Prog {
 	}
 	
 	pub fn first_pass(&mut self) {
-		
-		let tmp = self.statments.clone();
-		for statment in tmp {
+		for statment in self.statments.clone() {
 			match statment {
 				Statement::Label(l) => {
 					if self.labels.contains_key(&l) {
@@ -67,7 +65,6 @@ impl Prog {
 					}
 					
 					let pos = self.program.len();
-					
 					self.labels.insert(l.clone(), pos);
 					println!("Label {} at {:X} ", l, pos)
 				},
