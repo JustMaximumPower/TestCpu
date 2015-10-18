@@ -73,8 +73,9 @@ impl Prog {
 				},
 				
 				Statement::Data(d) => {
-					let value = Prog::parse_number(&d);
-					self.push_value8(value as u8);
+					let value = Prog::parse_number(&d) as u8;
+					let target = self.program.len() as u32;
+					self.push_value8(value, target);
 					println!("Data {}", d);
 				},
 				
@@ -106,26 +107,35 @@ impl Prog {
 	}
 	
 	pub fn second_pass(&mut self) {
-		
+		for rev in self.back_rev.clone() {
+			match rev {
+				BackRev::Absolute(label, target_address) => {
+					
+				},
+				BackRev::Relative(label, target_address) => {},
+				BackRev::Relative16(label, target_address) => {}
+			}
+		}
 	}
 	
 	fn push_address(&mut self, arg: &Argument) {
+		let target_address = self.program.len() as u32;
 		match arg.clone() {
 			Argument::Ident(x) => {
 				if self.labels.contains_key(&x) {
 					let address = self.labels.get(&x).unwrap().clone();
-					self.push_value32(address as u32);
+					self.push_value32(address as u32, target_address);
 				}
 				else
 				{
 					let pos = self.program.len() as u32;
-					self.push_value32(0u32);
+					self.push_value32(0u32, target_address);
 					let rev = BackRev::Absolute(x, pos);
 					self.back_rev.push(rev);
 				}
 			},
 			Argument::Number(x) => {
-				self.push_value32(Prog::parse_number(&x) as u32);
+				self.push_value32(Prog::parse_number(&x) as u32, target_address);
 			}
 		}
 	}
@@ -138,18 +148,21 @@ impl Prog {
 		}
 	}
 	
-	fn push_value8(&mut self, value : u8) {
-		self.program.push(value);
+	fn push_value8(&mut self, value : u8, target_address : u32) {
+		while (self.program.len() as u32) <= target_address {
+			self.program.push(0);
+		}
+		self.program[target_address as usize] = value;
 	}
 	
-	fn push_value16(&mut self, value : u16) {
-		self.push_value8((value >> 8) as u8);
-		self.push_value8(value as u8);
+	fn push_value16(&mut self, value : u16, offset : u32) {
+		self.push_value8((value >> 8) as u8, offset);
+		self.push_value8(value as u8, offset + 1);
 	}
 	
-	fn push_value32(&mut self, value : u32) {
-		self.push_value16((value >> 16) as u16);
-		self.push_value16(value as u16);
+	fn push_value32(&mut self, value : u32, offset : u32) {
+		self.push_value16((value >> 16) as u16, offset);
+		self.push_value16(value as u16, offset + 2);
 	}
 }
 
