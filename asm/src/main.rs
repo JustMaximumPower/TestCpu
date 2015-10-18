@@ -23,6 +23,7 @@ pub enum Argument {
 	Number(String)
 }
 
+#[derive(Clone)]
 enum BackRev {
 	Absolute(String, u32),
 	Relative(String, u32),
@@ -38,6 +39,7 @@ pub struct Prog {
 }
 
 impl Prog {
+	//constuctor
 	pub fn new(statments: Vec<Option<Statement>>) -> Prog {
 		let mut tmp: Vec<Statement> = Vec::new();
 		
@@ -56,6 +58,7 @@ impl Prog {
 		}
 	}
 	
+	// first pass of compile 
 	pub fn first_pass(&mut self) {
 		for statment in self.statments.clone() {
 			match statment {
@@ -102,6 +105,10 @@ impl Prog {
 		}
 	}
 	
+	pub fn second_pass(&mut self) {
+		
+	}
+	
 	fn push_address(&mut self, arg: &Argument) {
 		match arg.clone() {
 			Argument::Ident(x) => {
@@ -124,15 +131,11 @@ impl Prog {
 	}
 	
 	fn parse_number(str_number: &String) -> u64 {
-		let value: u64;
-		
 		if str_number.find("0x").is_some() {
-			value = u64::from_str_radix(&str_number[2..], 16).unwrap();
+			return u64::from_str_radix(&str_number[2..], 16).unwrap();
 		} else {
-			value = str_number.parse().unwrap();
+			return str_number.parse().unwrap();
 		}
-		
-		return value;
 	}
 	
 	fn push_value8(&mut self, value : u8) {
@@ -178,6 +181,8 @@ fn main() {
 	};
 	
 	ast.first_pass();
+	
+	ast.second_pass();
 }
 
 
