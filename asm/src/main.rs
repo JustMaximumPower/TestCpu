@@ -6,6 +6,7 @@ use std::env;
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
 use std::collections::HashMap;
 
 use gramma::programm;
@@ -94,7 +95,8 @@ impl Prog {
 							if args.len() != 1 {
 								panic!("jmp expects 1 argument");	
 							}
-							self.push_address(&args[0]);
+							let target = self.program.len() as u32;
+							self.push_address(&args[0], target, true);
 						},
 						
 						_ => {
@@ -110,28 +112,31 @@ impl Prog {
 		for rev in self.back_rev.clone() {
 			match rev {
 				BackRev::Absolute(label, target_address) => {
-					
+					self.push_address(&Argument::Ident(label), target_address, false);
 				},
-				BackRev::Relative(label, target_address) => {},
-				BackRev::Relative16(label, target_address) => {}
+				BackRev::Relative(label, target_address) =>{ panic!("not implemeted") },
+				BackRev::Relative16(label, target_address) => { panic!("not implemeted") }
 			}
 		}
 	}
 	
-	fn push_address(&mut self, arg: &Argument) {
-		let target_address = self.program.len() as u32;
+	fn push_address(&mut self, arg: &Argument, target_address: u32, may_fail: bool) {
 		match arg.clone() {
 			Argument::Ident(x) => {
 				if self.labels.contains_key(&x) {
 					let address = self.labels.get(&x).unwrap().clone();
 					self.push_value32(address as u32, target_address);
 				}
-				else
+				else if may_fail
 				{
 					let pos = self.program.len() as u32;
 					self.push_value32(0u32, target_address);
 					let rev = BackRev::Absolute(x, pos);
 					self.back_rev.push(rev);
+				}
+				else
+				{
+					panic!("Missing lable: {}", x);
 				}
 			},
 			Argument::Number(x) => {
@@ -166,7 +171,11 @@ impl Prog {
 	}
 }
 
+
+
 peg_file! gramma("gramma.rustpeg");
+
+
 
 fn main() {
 	let input = match env::args().nth(1) {
@@ -174,10 +183,13 @@ fn main() {
 		Some(file) => file
 	};
 	
-	let path = Path::new(&input);
+	let output = match env::args().nth(2) {
+		None => panic!("no Outout"),
+		Some(file) => file
+	};
 	
 	
-	let mut file = match File::open(&path) {
+	let mut file = match File::open(&Path::new(&input)) {
 		Err(why) => panic!(why),
 		Ok(file) => file,
 	};
@@ -196,6 +208,16 @@ fn main() {
 	ast.first_pass();
 	
 	ast.second_pass();
+	
+	
+	file = match File::create(&Path::new(&output)) {
+		Err(why) => panic!(why),
+		Ok(file) => file,
+	};
+	
+	match file.write_all(&ast.program) {
+		Err(why) => panic!(why),
+		Ok(()) => {}
+	}
 }
-
 
