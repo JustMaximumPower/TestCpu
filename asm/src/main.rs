@@ -77,7 +77,7 @@ impl Prog {
 					let value = Prog::parse_number(&d) as u8;
 					let target = self.program.len() as u32;
 					self.push_value8(value, target);
-					println!("Data {}", d);
+					println!("Data {} as 0x{:X}", d, target);
 				},
 				
 				Statement::Instruction(ins, args) => {
