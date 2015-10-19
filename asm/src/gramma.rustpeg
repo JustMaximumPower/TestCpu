@@ -1,14 +1,13 @@
 #[pub]
 programm -> super::Prog
-	= s:Statement* { super::Prog::new(s) }
-
+	= s:(Statement / WhiteSpace { None } )* { super::Prog::new(s) }
 
 Statement -> Option<super::Statement>
 	= l:Label { Some(super::Statement::Label(l)) }
 	/ i:Instruction { Some(i) }
 	/ d:Data { Some(super::Statement::Data(d)) }
 	/ Comment { None }
-	/ WhiteSpace+ { None }
+	
 
 
 Label -> String
@@ -16,7 +15,8 @@ Label -> String
 
 
 Instruction -> super::Statement
-	= i:Ident WhiteSpace+ arg:Argument ** Seperator { super::Statement::Instruction(i, arg) }
+	= i:Ident (" " / "\t")* arg:Argument ** Seperator { super::Statement::Instruction(i, arg) }
+	/ i:Ident { super::Statement::Instruction(i, Vec::new()) }
 
 Data -> String
 	= "'" n:Number "'" { n }
@@ -41,7 +41,9 @@ Ident -> String
 
 
 WhiteSpace -> ()
-	= [ \t\n]
+	= " " 
+	/ "\t" 
+	/ "\n"
 	
 	
 Seperator -> ()
