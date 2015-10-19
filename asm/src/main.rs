@@ -70,7 +70,7 @@ impl Prog {
 					
 					let pos = self.program.len();
 					self.labels.insert(l.clone(), pos);
-					println!("Label {} at {:X} ", l, pos)
+					println!("Label {} at 0x{:X} ", l, pos)
 				},
 				
 				Statement::Data(d) => {
@@ -197,8 +197,6 @@ fn main() {
 	let mut data = String::new();
 	
 	file.read_to_string(&mut data).unwrap();
-	
-	println!("{}", data);
 	
 	let mut ast = match programm(&data) {
 		Ok(ast) => { ast },
