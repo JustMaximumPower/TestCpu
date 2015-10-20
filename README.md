@@ -11,8 +11,8 @@ This is a pet project to implement a cpu emulator in rust.
 | Store | 0x0A | 2bit Wordsize, 1Bit unused, 5Bit Register Index; Adress32 |
 | Load | 0x0B | 2bit Wordsize, 1Bit unused, 5Bit Register Index; Adress32 |
 | Move | 0x0C | 1Byte lenght; Adress32 source; Adress32 destination |
-| Copy | 0x0D | 1Bit special Reg, 1Bit unused, 5Bit Source Reg; 1Bit special Reg, 1Bit unused, 5Bit target Reg |
-| Add | 0x10 | 1Bit unused, 5Bit Target Reg, 5Bit A Reg, 5Bit B Reg |
+| Copy | 0x0D |  2Bit unused, 1Bit special Reg, 5Bit Source Reg; 2Bit unused, 1Bit special Reg, 5Bit target Reg |
+| Add | 0x10| 1Bit unused, 5Bit Target Reg, 5Bit A Reg, 5Bit B Reg |
 | Sub | 0x11 | 1Bit unused, 5Bit Target Reg, 5Bit A Reg, 5Bit B Reg |
 | Mul | 0x12 | 1Bit unused, 5Bit Target Reg, 5Bit A Reg, 5Bit B Reg |
 | Div | 0x13 | 1Bit unused, 5Bit Target Reg, 5Bit A Reg, 5Bit B Reg |
