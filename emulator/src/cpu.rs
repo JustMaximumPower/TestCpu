@@ -283,23 +283,18 @@ pub mod cpu {
 					let value = try!(self.fetchu32(self.pc + 1));
 					Ok((5, Instruction::LongJump(value)))
 				},
-				0xA => {
+				0xA | 0xB => {
 					let value = try!(self.fetchu8(self.pc + 1));
 					let address =  try!(self.fetchu32(self.pc + 2));
 					let reg = value & 0x1f;
 					let wordsize = 2 << ((value & 0xC0) >> 6);
 					
-					Ok((6, Instruction::Store(wordsize, reg, address)))
+					if fist_byte == 0xA {
+						Ok((6, Instruction::Store(wordsize, reg, address)))
+					} else {
+						Ok((6, Instruction::Load(wordsize, reg, address)))
+					}
 				},
-				0xB => {
-					let value =  try!(self.fetchu8(self.pc + 1));
-					let address =  try!(self.fetchu32(self.pc + 2));
-					let reg = value & 0x1f;
-					let wordsize = 2 << ((value & 0xC0) >> 6);
-					
-					Ok((6, Instruction::Load(wordsize, reg, address)))
-				},
-				
 				0xC => {
 					let length =  try!(self.fetchu8(self.pc + 1));
 					let src_address =  try!(self.fetchu32(self.pc + 2));
