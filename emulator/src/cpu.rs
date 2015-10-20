@@ -285,9 +285,9 @@ pub mod cpu {
 				},
 				0xA | 0xB => {
 					let value = try!(self.fetchu8(self.pc + 1));
-					let address =  try!(self.fetchu32(self.pc + 2));
+					let address = try!(self.fetchu32(self.pc + 2));
 					let reg = value & 0x1f;
-					let wordsize = 2 << ((value & 0xC0) >> 6);
+					let wordsize = 1 << ((value & 0xC0) >> 6);
 					
 					if fist_byte == 0xA {
 						Ok((6, Instruction::Store(wordsize, reg, address)))
@@ -296,16 +296,16 @@ pub mod cpu {
 					}
 				},
 				0xC => {
-					let length =  try!(self.fetchu8(self.pc + 1));
-					let src_address =  try!(self.fetchu32(self.pc + 2));
-					let dest_address =  try!(self.fetchu32(self.pc + 6));
+					let length = try!(self.fetchu8(self.pc + 1));
+					let src_address = try!(self.fetchu32(self.pc + 2));
+					let dest_address = try!(self.fetchu32(self.pc + 6));
 					
 					Ok((10, Instruction::Move(length, src_address, dest_address)))
 				},
 				
 				0xD => {
-					let source_reg =  try!(self.fetchu8(self.pc + 1));
-					let dest_reg =  try!(self.fetchu8(self.pc + 1));
+					let source_reg = try!(self.fetchu8(self.pc + 1));
+					let dest_reg = try!(self.fetchu8(self.pc + 1));
 					
 					Ok((3, Instruction::Copy(source_reg, dest_reg)))
 				},
