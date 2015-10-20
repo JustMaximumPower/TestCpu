@@ -212,7 +212,7 @@ pub mod cpu {
 		fn save_reg(&mut self, reg: u8, value: u32) -> Result<(), Error> {
 			match reg {
 				0 ... 31 => self.gp_regs[reg as usize] = value,
-				0x80 => self.pc = value,
+				0x20 => self.pc = value,
 				_ => { return Err(Error::IllegalRegister(reg));}
 			}
 			Ok(())
@@ -222,7 +222,7 @@ pub mod cpu {
 		fn fetch_reg(&self, reg: u8) -> Result<u32, Error> {
 			match reg {
 				0 ... 31 => Ok(self.gp_regs[reg as usize]),
-				0x80 => Ok(self.pc),
+				0x20 => Ok(self.pc),
 				_ => { return Err(Error::IllegalRegister(reg));}
 			}
 		}
