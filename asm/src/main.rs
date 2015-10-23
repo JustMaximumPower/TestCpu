@@ -1,6 +1,7 @@
 #![feature(plugin)]
 #![plugin(peg_syntax_ext)]
 
+extern crate regex;
 
 use std::env;
 use std::path::Path;
@@ -8,6 +9,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::collections::HashMap;
+use regex::Regex;
 
 use gramma::programm;
 
@@ -31,12 +33,12 @@ enum BackRev {
 	Relative16(String, u32)
 }
 
-
 pub struct Prog {
 	statments: Vec<Statement>,
 	labels: HashMap<String, usize>,
 	program: Vec<u8>,
-	back_rev: Vec<BackRev>
+	back_rev: Vec<BackRev>,
+	is_second_pass: bool
 }
 
 impl Prog {
@@ -55,7 +57,8 @@ impl Prog {
 			statments: tmp, 
 			labels: HashMap::new(), 
 			program: Vec::new(), 
-			back_rev: Vec::new()
+			back_rev: Vec::new(),
+			is_second_pass: false
 		}
 	}
 	
@@ -81,53 +84,90 @@ impl Prog {
 				},
 				
 				Statement::Instruction(ins, args) => {
-					println!("Instruction {} ", ins);
-					match ins.as_ref() {
-						"nop" => {
-							self.program.push(0x0u8);
-							if !args.is_empty() {
-								panic!("nop expects no arguments");	
-							}
-						},
-						
-						"jmp" => {
-							self.program.push(0x3u8);
-							if args.len() != 1 {
-								panic!("jmp expects 1 argument");	
-							}
-							let target = self.program.len() as u32;
-							self.push_address(&args[0], target, true);
-						},
-						
-						_ => {
-							panic!("unkown instruction {}", ins);
-						}
-					}
+					self.push_instruction(ins, args);
 				}
 			}
 		}
 	}
 	
 	pub fn second_pass(&mut self) {
+		self.is_second_pass = true;
 		for rev in self.back_rev.clone() {
 			match rev {
 				BackRev::Absolute(label, target_address) => {
-					self.push_address(&Argument::Ident(label), target_address, false);
+					self.push_address(&Argument::Ident(label), target_address);
 				},
-				BackRev::Relative(label, target_address) =>{ panic!("not implemeted") },
-				BackRev::Relative16(label, target_address) => { panic!("not implemeted") }
+				BackRev::Relative(_, _) =>{ panic!("not implemeted") },
+				BackRev::Relative16(_, _) => { panic!("not implemeted") }
 			}
 		}
 	}
 	
-	fn push_address(&mut self, arg: &Argument, target_address: u32, may_fail: bool) {
+	
+	fn push_instruction(&mut self, ins: String, args: Vec<Argument>) {
+		println!("Instruction {} ", ins);
+		match ins.as_ref() {
+			"nop" => {
+				self.program.push(0x0u8);
+				if !args.is_empty() {
+					panic!("nop expects no arguments");	
+				}
+			},
+			
+			"jmp" => {
+				self.program.push(0x03u8);
+				if args.len() != 1 {
+					panic!("jmp expects 1 argument");	
+				}
+				let target = self.program.len() as u32;
+				self.push_address(&args[0], target);
+			},
+			
+			"store" | "load" => {
+				self.program.push(if ins == "store" { 0x0Au8 } else { 0x0Bu8 });
+				if args.len() < 2 || args.len() > 3 {
+					panic!("{} expects 2 or 3 argument", ins);	
+				}
+				
+				let word_size = if args.len() == 2 { 4 } else {
+					match args[0].clone() {
+						Argument::Ident(_) => {
+							panic!("Wordsize needs to be a number");
+						},
+						Argument::Number(num) => {
+							Prog::parse_number(&num)
+						}
+					}
+				};
+				
+				let reg = Prog::get_register_code(args[args.len() - 2].clone(), true);
+				
+				let argument = match word_size {
+						1 => { 0 },
+						2 => { 1 << 6 },
+						4 => { 2 << 6 },
+						_ => { panic!("Illegal word size {}", word_size); }
+				} | reg;
+				
+				self.program.push(argument);
+				let target = self.program.len() as u32;
+				self.push_address(&args[args.len() - 1], target);
+			}
+			
+			_ => {
+				panic!("unkown instruction {}", ins);
+			}
+		}
+	}
+	
+	fn push_address(&mut self, arg: &Argument, target_address: u32) {
 		match arg.clone() {
 			Argument::Ident(x) => {
 				if self.labels.contains_key(&x) {
 					let address = self.labels.get(&x).unwrap().clone();
 					self.push_value32(address as u32, target_address);
 				}
-				else if may_fail
+				else if !self.is_second_pass
 				{
 					let pos = self.program.len() as u32;
 					self.push_value32(0u32, target_address);
@@ -145,11 +185,42 @@ impl Prog {
 		}
 	}
 	
-	fn parse_number(str_number: &String) -> u64 {
+	fn parse_number(str_number: &str) -> u64 {
 		if str_number.find("0x").is_some() {
 			return u64::from_str_radix(&str_number[2..], 16).unwrap();
 		} else {
 			return str_number.parse().unwrap();
+		}
+	}
+	
+	fn get_register_code(reg: Argument, allow_spectial: bool) -> u8 {
+		
+		let str_reg = match reg {
+			Argument::Ident(x) => { x },
+			Argument::Number(_) => {
+				panic!("Register needs to be a ident");
+			}
+		};
+		
+		let re = Regex::new(r"r(\d+)").unwrap();
+		match re.captures(&str_reg) {
+			Some(caps) => {
+				Prog::parse_number(caps.at(1).unwrap()) as u8
+			},
+			None => {
+				if allow_spectial {
+					match str_reg.as_ref() {
+						"pc" => { 0x20 },
+						_ => { 
+							panic!("unknown spectial registe {}", str_reg);
+						}
+					}
+				}
+				else
+				{
+					panic!("can't use spectial register");
+				}
+			}
 		}
 	}
 	

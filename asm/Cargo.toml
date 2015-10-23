@@ -5,3 +5,4 @@ authors = ["JustMaximumPower <max.kue@gmx.de>"]
 
 [dependencies]
 peg = "0.3.0"
+regex = "0.1.0"
