@@ -131,7 +131,7 @@ pub mod cpu {
 				}
 				
 				Instruction::Store(wordsize, register, address) => {
-					println!("Store {} bytes to r{} at 0x{:X}", wordsize, register, address);
+					println!("Store {} bytes to 0x{:X} from r{}", wordsize, address, register);
 					
 					let reg = self.gp_regs[register as usize];
 					for n in 0 .. wordsize {
@@ -286,7 +286,7 @@ pub mod cpu {
 				0xA | 0xB => {
 					let value = try!(self.fetchu8(self.pc + 1));
 					let address = try!(self.fetchu32(self.pc + 2));
-					let reg = value & 0x1f;
+					let reg = value & 0x3f;
 					let wordsize = 1 << ((value & 0xC0) >> 6);
 					
 					if fist_byte == 0xA {
