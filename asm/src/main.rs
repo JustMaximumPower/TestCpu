@@ -154,6 +154,29 @@ impl Prog {
 				self.push_address(&args[args.len() - 1], target);
 			},
 			
+			"mv" => {
+				if args.len() != 3 {
+					panic!("{} expects 3 argument", ins);	
+				}
+				self.program.push(0x0C);
+				
+				let size = match args[0].clone() {
+					Argument::Ident(_) => {
+						panic!("Size needs to be a number");
+					},
+					Argument::Number(num) => {
+						Prog::parse_number(&num) as u8
+					}
+				};
+				
+				self.program.push(size);
+				
+				let target = self.program.len() as u32;
+				self.push_address(&args[1], target);
+				let target = self.program.len() as u32;
+				self.push_address(&args[2], target);
+			},
+			
 			_ => {
 				panic!("unkown instruction {}", ins);
 			}
