@@ -133,7 +133,7 @@ pub mod cpu {
 				Instruction::Store(wordsize, register, address) => {
 					println!("Store {} bytes to 0x{:X} from r{}", wordsize, address, register);
 					
-					let reg = self.gp_regs[register as usize];
+					let reg = try!(self.fetch_reg(register));
 					for n in 0 .. wordsize {
 						let value = (reg >> (8 * (wordsize - n))) as u8;
 						if self.storeu8(value, address + n as u32).is_err() {
