@@ -152,7 +152,7 @@ impl Prog {
 				self.program.push(argument);
 				let target = self.program.len() as u32;
 				self.push_address(&args[args.len() - 1], target);
-			}
+			},
 			
 			_ => {
 				panic!("unkown instruction {}", ins);
@@ -194,7 +194,6 @@ impl Prog {
 	}
 	
 	fn get_register_code(reg: Argument, allow_spectial: bool) -> u8 {
-		
 		let str_reg = match reg {
 			Argument::Ident(x) => { x },
 			Argument::Number(_) => {
